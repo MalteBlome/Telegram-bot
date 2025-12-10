@@ -9,10 +9,10 @@ from telegram.ext import (
 )
 
 # ============================================
-# ENVIRONMENT VARIABLES (Render)
+# ENV VARIABLES (Railway)
 # ============================================
 TOKEN = os.environ.get("TELEGRAM_TOKEN")
-RENDER_URL = os.environ.get("RENDER_EXTERNAL_URL")
+RAILWAY_URL = os.environ.get("RAILWAY_STATIC_URL")
 
 # ============================================
 # TELEGRAM APPLICATION – nur EINMAL erstellen
@@ -92,7 +92,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     state = user_state[chat_id]
 
-    # -------- STATE: CODE --------
     if state == STATE_CODE:
         if text == "50674":
             user_state[chat_id] = STATE_TOM
@@ -102,7 +101,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await update.message.reply_text("❌ Falscher Code!")
 
-    # -------- STATE: TOM --------
     elif state == STATE_TOM:
         if text == "7231":
             user_state[chat_id] = STATE_PASCHA
@@ -112,7 +110,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await update.message.reply_text("❌ Falscher Code!")
 
-    # -------- STATE: PASCHA --------
     elif state == STATE_PASCHA:
         if text.lower().strip() == "bo":
             user_state[chat_id] = STATE_SONG
@@ -126,16 +123,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await update.message.reply_text("Schreib *BO*.")
 
-    # -------- STATE: SONG --------
     elif state == STATE_SONG:
         await update.message.reply_text(f"Cooler Text! 🎤\n„{text}“")
         await update.message.reply_text("Du hast alle Schritte abgeschlossen! ✅")
 
-        # Reset
         user_state.pop(chat_id, None)
         user_data.pop(chat_id, None)
         user_help_count.pop(chat_id, None)
-
 
 # ============================================
 # EXTRA-FUNKTIONEN (Bilder senden)
@@ -163,14 +157,14 @@ application.add_handler(CommandHandler("help", help))
 application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
 # ============================================
-# RENDER STARTET DEN WEBHOOK-SERVER
+# RAILWAY STARTBLOCK (RICHTIG!)
 # ============================================
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    
+    port = int(os.environ.get("PORT", 8000))
+
     application.run_webhook(
         listen="0.0.0.0",
         port=port,
         url_path=f"webhook/{TOKEN}",
-        webhook_url=f"{RENDER_URL}/webhook/{TOKEN}",
+        webhook_url=f"{RAILWAY_URL}/webhook/{TOKEN}",
     )
