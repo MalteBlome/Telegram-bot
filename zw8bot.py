@@ -9,10 +9,10 @@ from telegram.ext import (
 )
 
 # ============================================
-# ENV VARIABLES (Railway)
+# ENV VARIABLES (Replit)
 # ============================================
-TOKEN = os.environ.get("TELEGRAM_TOKEN")
-RAILWAY_URL = os.environ.get("RAILWAY_STATIC_URL")
+TOKEN = os.environ.get("TELEGRAM_TOKEN")          # Bot Token
+REPLIT_URL = os.environ.get("REPLIT_URL")         # z.B. https://meinbot.replit.app
 
 # ============================================
 # TELEGRAM APPLICATION – nur EINMAL erstellen
@@ -157,7 +157,7 @@ application.add_handler(CommandHandler("help", help))
 application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
 # ============================================
-# RAILWAY STARTBLOCK (RICHTIG!)
+# REPLIT STARTBLOCK (RICHTIG!)
 # ============================================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
@@ -166,5 +166,5 @@ if __name__ == "__main__":
         listen="0.0.0.0",
         port=port,
         url_path=f"webhook/{TOKEN}",
-        webhook_url=f"{RAILWAY_URL}/webhook/{TOKEN}",
+        webhook_url=f"{REPLIT_URL}/webhook/{TOKEN}",
     )
