@@ -29,6 +29,12 @@ logger = logging.getLogger(__name__)
 # PORT           = wird von Railway gesetzt (optional, fallback vorhanden)
 
 TOKEN = os.environ.get("TELEGRAM_TOKEN")
+import os, logging
+logging.basicConfig(level=logging.INFO)
+
+logging.info("Has TELEGRAM_TOKEN key? %s", "TELEGRAM_TOKEN" in os.environ)
+logging.info("TELEGRAM_TOKEN non-empty? %s", bool(os.environ.get("TELEGRAM_TOKEN")))
+logging.info("Some env keys sample: %s", sorted(list(os.environ.keys()))[:15])
 PUBLIC_URL = os.environ.get("PUBLIC_URL")
 PORT = int(os.environ.get("PORT", "8080"))
 
