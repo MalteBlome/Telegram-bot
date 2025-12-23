@@ -67,8 +67,23 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_state[chat_id] = STATE_CODE
     user_help_count[chat_id] = 0
 
-    await update.message.reply_text("Hallo! Nenne mir zuerst den geheimen Code ...")
+    img = file_path("schnuffel.png")
 
+    if img.exists():
+        with img.open("rb") as photo:
+            await update.message.reply_photo(
+                photo=photo,
+                caption=(
+                    "Hallo Team Schnuffel!\n\n"
+                    "Heute gibt es vom Weihnachtsmann 🎅 die Geschenke 🎁 "
+                    "nicht einfach soo… ihr müsst sie euch wohl verdienen.\n\n"
+                    "Daher beginnt hier euer Rätsel:\n"
+                    "Das in der Ruschwedelerstraße weit bekannte Gedicht von "
+                    "Reiner Kunze – *Rudern Zwei* – wird auf welches Jahr datiert?"
+                ),
+            )
+    else:
+        await update.message.reply_text("⚠️ Datei schnuffel.png fehlt auf dem Server.")
 
 async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
@@ -155,7 +170,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     state = user_state[chat_id]
 
     if state == STATE_CODE:
-        if text == "50674":
+        if text == "1977":
             user_state[chat_id] = STATE_TOM
             user_help_count[chat_id] = 0
             await update.message.reply_text("Code akzeptiert! ✅")
