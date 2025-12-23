@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 # PUBLIC_URL     = https://deinprojekt.up.railway.app
 # PORT           = wird von Railway gesetzt (optional, fallback vorhanden)
 
-TOKEN = "8596653896:AAFqU1kAhw-fMrY-6xikAyz8j69s1fUlyvo"
+TOKEN = os.environ.get("TELEGRAM_TOKEN")
 
 PUBLIC_URL = os.environ.get("PUBLIC_URL")
 PORT = int(os.environ.get("PORT", "8080"))
