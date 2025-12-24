@@ -123,15 +123,17 @@ async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Helper: Bilder senden
 # ============================================================
 async def send_tom(update: Update):
-    await update.message.reply_text("Hier sind deine Hinweise:")
+    await update.message.reply_text("Hier geht es weiter:")
 
-    # TOM.png
-    p = file_path("TOM.png")
+    p = file_path("Song1.ogg")  # z. B. mp3, wav, m4a
     if p.exists():
         with p.open("rb") as f:
-            await update.message.reply_photo(photo=f, caption="7231")
+            await update.message.reply_audio(
+                audio=f,
+                caption="7231",
+            )
     else:
-        await update.message.reply_text("⚠️ Datei TOM.png fehlt auf dem Server.")
+        await update.message.reply_text("⚠️ Datei TOM.mp3 fehlt auf dem Server.")
 
     # Arni.png
     p = file_path("Arni.png")
