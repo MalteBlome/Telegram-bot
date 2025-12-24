@@ -138,10 +138,10 @@ async def send_tom(update: Update):
 
 
 async def send_pascha(update: Update):
-    await update.message.reply_text("Welche Maßnahme trägt am effektivsten zur Reduktion der Strahlenbelastung des Patienten bei?"
-"A) Erhöhung der mAs"
-"B) Vergrößerung des Fokus-Film-Abstands"
-"C) Verwendung von Bleigummischürzen"
+    await update.message.reply_text("Welche Maßnahme trägt am effektivsten zur Reduktion der Strahlenbelastung des Patienten bei?\n"
+"A) Erhöhung der mAs\n"
+"B) Vergrößerung des Fokus-Film-Abstands\n"
+"C) Verwendung von Bleigummischürzen\n"
 "D) Verkleinerung des Strahlenfeldes (Einblenden)")
 
 
@@ -182,18 +182,22 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             user_state[chat_id] = STATE_SONG
             user_help_count[chat_id] = 0
 
-            img = file_path("DJBO.jpg")
+            img = file_path("elektro.png")
             if img.exists():
                 with img.open("rb") as photo:
                     await update.message.reply_photo(
                         photo=photo,
-                        caption="OK! Sag mir deinen Lieblings-Songtext 🎵",
+                        caption="Jetzt du Scherlock - wie sieht es mit der Elektrotechnik aus - Was passiert mit dem Strom, wenn die Widerstand halbiert wird?\n"
+                        "A.) Der Strom wird viermal so groß.\n"
+                        "B.) Der Strom bleibt unverändert.\n"
+                        "C.) Der Strom halbiert sich ebenfalls.\n"
+                        "C.) Der Strom wird doppelt so groß.\n"
                     )
             else:
                 await update.message.reply_text("⚠️ Datei DJBO.jpg fehlt auf dem Server.")
                 await update.message.reply_text("Sag mir trotzdem deinen Lieblings-Songtext 🎵")
         else:
-            await update.message.reply_text("Schreib *BO*.")
+            await update.message.reply_text("Falsche Antwort")
 
     elif state == STATE_SONG:
         await update.message.reply_text(f"Cooler Text! 🎤\n„{text}“")
