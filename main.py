@@ -23,11 +23,6 @@ logger = logging.getLogger(__name__)
 # ============================================================
 # ENV VARS (Railway)
 # ============================================================
-# In Railway -> Variables setzen:
-# TELEGRAM_TOKEN = 123456:ABC...
-# PUBLIC_URL     = https://deinprojekt.up.railway.app
-# PORT           = wird von Railway gesetzt (optional, fallback vorhanden)
-
 TOKEN = os.environ.get("TELEGRAM_TOKEN")
 
 PUBLIC_URL = os.environ.get("PUBLIC_URL")
@@ -53,7 +48,7 @@ def file_path(filename: str) -> Path:
 STATE_CODE = 1
 STATE_TOM = 2
 STATE_PASCHA = 3
-STATE_SONG = 4
+STATE_ELEKTRO = 4  # <-- NEU: eigener State für Elektrotechnik
 
 user_state: dict[int, int] = {}
 user_help_count: dict[int, int] = {}
@@ -115,17 +110,20 @@ async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif state == STATE_PASCHA:
         await update.message.reply_text("Tipp: Schreibe *BO*.")
 
+    elif state == STATE_ELEKTRO:
+        await update.message.reply_text("Tipp: Ohmsches Gesetz 😉")
+
     else:
         await update.message.reply_text("Keine weiteren Tipps!")
 
 
 # ============================================================
-# Helper: Bilder senden
+# Helper: Medien senden
 # ============================================================
 async def send_tom(update: Update):
     await update.message.reply_text("Hier geht es weiter:")
 
-    p = file_path("Song1.ogg")  # z. B. mp3, wav, m4a
+    p = file_path("Song1.ogg")
     if p.exists():
         with p.open("rb") as f:
             await update.message.reply_audio(
@@ -135,15 +133,53 @@ async def send_tom(update: Update):
     else:
         await update.message.reply_text("⚠️ Datei fehlt auf dem Server.")
 
-
-
 async def send_pascha(update: Update):
-    await update.message.reply_text("Welche Maßnahme trägt am effektivsten zur Reduktion der Strahlenbelastung des Patienten bei?\n"
-"A) Erhöhung der mAs\n"
-"B) Vergrößerung des Fokus-Film-Abstands\n"
-"C) Verwendung von Bleigummischürzen\n"
-"D) Verkleinerung des Strahlenfeldes (Einblenden)")
+    await update.message.reply_text(
+        "Welche Maßnahme trägt am effektivsten zur Reduktion der Strahlenbelastung des Patienten bei?\n"
+        "A) Erhöhung der mAs\n"
+        "B) Vergrößerung des Fokus-Film-Abstands\n"
+        "C) Verwendung von Bleigummischürzen\n"
+        "D) Verkleinerung des Strahlenfeldes (Einblenden)"
+    )
 
+async def send_elektro(update: Update):
+    img = file_path("elektro.png")
+    if img.exists():
+        with img.open("rb") as photo:
+            await update.message.reply_photo(
+                photo=photo,
+                caption=(
+                    "Jetzt du Scherlock - wie sieht es mit der Elektrotechnik aus - "
+                    "Was passiert mit dem Strom, wenn die Widerstand halbiert wird?\n"
+                    "A.) Der Strom wird viermal so groß.\n"
+                    "B.) Der Strom wird doppelt so groß.\n"
+                    "C.) Der Strom halbiert sich ebenfalls.\n"
+                    "D.) Der Strom bleibt unverändert.\n"
+                    "\nAntwort bitte nur mit A, B, C oder D."
+                ),
+            )
+    else:
+        await update.message.reply_text("⚠️ Datei elektro.png fehlt auf dem Server.")
+        await update.message.reply_text(
+            "Elektrotechnik-Frage trotzdem:\n"
+            "Was passiert mit dem Strom, wenn der Widerstand halbiert wird?\n"
+            "A) viermal so groß\nB) doppelt so groß\nC) halbiert\nD) unverändert"
+        )
+
+async def send_final_video(update: Update):
+    # Dateiname kannst du ändern (z.B. "final.mp4")
+    v = file_path("final.mp4")
+    caption_text = "Ihr habt alle Rätsel gelöst und somit euer Geschenk verdient"
+
+    if v.exists():
+        with v.open("rb") as video:
+            await update.message.reply_video(
+                video=video,
+                caption=caption_text,
+            )
+    else:
+        await update.message.reply_text("⚠️ Final-Video fehlt auf dem Server (final.mp4).")
+        await update.message.reply_text(caption_text)
 
 
 # ============================================================
@@ -160,10 +196,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     state = user_state[chat_id]
 
     if state == STATE_CODE:
-        if text == "1977":
+        if text == "1984":
             user_state[chat_id] = STATE_TOM
             user_help_count[chat_id] = 0
-            await update.message.reply_text("Sehr gut - damit habt ihr das erste Rätsel gelöst und seid eurem Geschenk schon etwas näher✅")
+            await update.message.reply_text(
+                "Sehr gut - damit habt ihr das erste Rätsel gelöst und seid eurem Geschenk schon etwas näher✅"
+            )
             await send_tom(update)
         else:
             await update.message.reply_text("❌ Falscher Code!")
@@ -172,62 +210,51 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if text == "Kurt Mühlhardt":
             user_state[chat_id] = STATE_PASCHA
             user_help_count[chat_id] = 0
-            await update.message.reply_text("Richtig! Nun zurück mit euch auf die Schulbank… erste Frage geht an dich Miss Marple: ")
+            await update.message.reply_text(
+                "Richtig! Nun zurück mit euch auf die Schulbank… erste Frage geht an dich Miss Marple: "
+            )
             await send_pascha(update)
         else:
             await update.message.reply_text("❌ Falscher Code!")
 
     elif state == STATE_PASCHA:
-        if text.lower() == "d":
-            user_state[chat_id] = STATE_SONG
+        # richtige Lösung: D
+        if text.strip().lower() == "d":
+            user_state[chat_id] = STATE_ELEKTRO
             user_help_count[chat_id] = 0
-
-            img = file_path("elektro.png")
-            if img.exists():
-                with img.open("rb") as photo:
-                    await update.message.reply_photo(
-                        photo=photo,
-                        caption="Jetzt du Scherlock - wie sieht es mit der Elektrotechnik aus - Was passiert mit dem Strom, wenn die Widerstand halbiert wird?\n"
-                        "A.) Der Strom wird viermal so groß.\n"
-                        "B.) Der Strom bleibt unverändert.\n"
-                        "C.) Der Strom halbiert sich ebenfalls.\n"
-                        "C.) Der Strom wird doppelt so groß.\n"
-                    )
-            else:
-                await update.message.reply_text("⚠️ Datei DJBO.jpg fehlt auf dem Server.")
-                await update.message.reply_text("Sag mir trotzdem deinen Lieblings-Songtext 🎵")
+            await update.message.reply_text("Richtig ✅ Weiter geht’s mit Elektrotechnik:")
+            await send_elektro(update)
         else:
-            await update.message.reply_text("Falsche Antwort")
+            await update.message.reply_text("❌ Falsche Antwort. Bitte A, B, C oder D.")
 
-    elif state == STATE_SONG:
-        await update.message.reply_text(f"Cooler Text! 🎤\n„{text}“")
-        await update.message.reply_text("Du hast alle Schritte abgeschlossen! ✅")
+    elif state == STATE_ELEKTRO:
+        # richtige Lösung: B
+        answer = text.strip().lower()
+        if answer in {"b", "b.", "b)", "b]"}:
+            await send_final_video(update)
 
-        # Reset
-        user_state.pop(chat_id, None)
-        user_help_count.pop(chat_id, None)
-
+            # Reset
+            user_state.pop(chat_id, None)
+            user_help_count.pop(chat_id, None)
+        else:
+            await update.message.reply_text("❌ Leider falsch. Versucht es nochmal: A, B, C oder D.")
 
 # ============================================================
 # Main: Webhook für Railway
 # ============================================================
 def main():
-    # App bauen
     application = Application.builder().token(TOKEN).build()
 
-    # Handler registrieren
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_cmd))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-    # Webhook Pfad (kannst du so lassen)
     url_path = f"webhook/{TOKEN}"
     webhook_url = f"{PUBLIC_URL.rstrip('/')}/{url_path}"
 
     logger.info("Starting webhook server on port %s", PORT)
     logger.info("Webhook URL: %s", webhook_url)
 
-    # Start Webhook
     application.run_webhook(
         listen="0.0.0.0",
         port=PORT,
@@ -235,7 +262,6 @@ def main():
         webhook_url=webhook_url,
         drop_pending_updates=True,
     )
-
 
 if __name__ == "__main__":
     main()
