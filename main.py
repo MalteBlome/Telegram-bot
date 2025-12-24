@@ -130,32 +130,20 @@ async def send_tom(update: Update):
         with p.open("rb") as f:
             await update.message.reply_audio(
                 audio=f,
-                caption="7231",
+                caption="Hier ist die Audio für euer zweites Rätsel 🎶 Wer singt denn hier diesen wunderbaren Song?",
             )
     else:
-        await update.message.reply_text("⚠️ Datei TOM.mp3 fehlt auf dem Server.")
+        await update.message.reply_text("⚠️ Datei fehlt auf dem Server.")
 
-    # Arni.png
-    p = file_path("Arni.png")
-    if p.exists():
-        with p.open("rb") as f:
-            await update.message.reply_photo(photo=f, caption="3115")
-    else:
-        await update.message.reply_text("⚠️ Datei Arni.png fehlt auf dem Server.")
-
-    # Ronny.png
-    p = file_path("Ronny.png")
-    if p.exists():
-        with p.open("rb") as f:
-            await update.message.reply_photo(photo=f, caption="8726")
-    else:
-        await update.message.reply_text("⚠️ Datei Ronny.png fehlt auf dem Server.")
 
 
 async def send_pascha(update: Update):
-    await update.message.reply_text("Die Truhe führt dich zu einer Location:")
-    await update.message.reply_text("https://maps.app.goo.gl/tMCEBn7d2c69L41a7")
-    await update.message.reply_text("Schreib *BO*, wenn du dort bist.")
+    await update.message.reply_text("Welche Maßnahme trägt am effektivsten zur Reduktion der Strahlenbelastung des Patienten bei?"
+"A) Erhöhung der mAs"
+"B) Vergrößerung des Fokus-Film-Abstands"
+"C) Verwendung von Bleigummischürzen"
+"D) Verkleinerung des Strahlenfeldes (Einblenden)")
+
 
 
 # ============================================================
@@ -175,22 +163,22 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if text == "1977":
             user_state[chat_id] = STATE_TOM
             user_help_count[chat_id] = 0
-            await update.message.reply_text("Code akzeptiert! ✅")
+            await update.message.reply_text("Sehr gut - damit habt ihr das erste Rätsel gelöst und seid eurem Geschenk schon etwas näher✅")
             await send_tom(update)
         else:
             await update.message.reply_text("❌ Falscher Code!")
 
     elif state == STATE_TOM:
-        if text == "7231":
+        if text == "Kurt Mühlhardt":
             user_state[chat_id] = STATE_PASCHA
             user_help_count[chat_id] = 0
-            await update.message.reply_text("Richtig! Weiter geht's …")
+            await update.message.reply_text("Richtig! Nun zurück mit euch auf die Schulbank… erste Frage geht an dich Miss Marple: ")
             await send_pascha(update)
         else:
             await update.message.reply_text("❌ Falscher Code!")
 
     elif state == STATE_PASCHA:
-        if text.lower() == "bo":
+        if text.lower() == "d":
             user_state[chat_id] = STATE_SONG
             user_help_count[chat_id] = 0
 
