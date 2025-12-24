@@ -150,7 +150,7 @@ async def send_elektro(update: Update):
                 photo=photo,
                 caption=(
                     "Jetzt du Scherlock - wie sieht es mit der Elektrotechnik aus - "
-                    "Was passiert mit dem Strom, wenn die Widerstand halbiert wird?\n"
+                    "Was passiert mit dem Strom, wenn der Widerstand halbiert wird?\n"
                     "A.) Der Strom wird viermal so groß.\n"
                     "B.) Der Strom wird doppelt so groß.\n"
                     "C.) Der Strom halbiert sich ebenfalls.\n"
