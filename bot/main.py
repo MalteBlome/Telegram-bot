@@ -1,7 +1,10 @@
 import os
 import logging
+import hashlib
 from pathlib import Path
+from typing import Optional
 
+import asyncpg
 from telegram import Update
 from telegram.ext import (
     Application,
@@ -24,19 +27,94 @@ logger = logging.getLogger(__name__)
 # ENV VARS (Railway)
 # ============================================================
 TOKEN = os.environ.get("TELEGRAM_TOKEN")
-
 PUBLIC_URL = os.environ.get("PUBLIC_URL")
 PORT = int(os.environ.get("PORT", "8080"))
+
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
 if not TOKEN:
     raise RuntimeError("ENV Variable TELEGRAM_TOKEN fehlt.")
 if not PUBLIC_URL:
     raise RuntimeError("ENV Variable PUBLIC_URL fehlt (deine Railway-URL).")
+if not DATABASE_URL:
+    raise RuntimeError("ENV Variable DATABASE_URL fehlt (Railway Postgres).")
+
+# ============================================================
+# DB Pool (asyncpg)
+# ============================================================
+db_pool: Optional[asyncpg.Pool] = None
+
+
+async def get_db_pool() -> asyncpg.Pool:
+    global db_pool
+    if db_pool is None:
+        db_pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=5)
+    return db_pool
+
+
+def normalize_code(code: str) -> str:
+    return (code or "").strip().upper()
+
+
+def hash_code(code: str) -> str:
+    return hashlib.sha256(code.encode("utf-8")).hexdigest()
+
+
+async def is_licensed(telegram_user_id: int) -> bool:
+    """
+    True, wenn diese Telegram-User-ID bereits eine eingelöste Lizenz hat.
+    """
+    pool = await get_db_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT 1 FROM licenses WHERE redeemed_telegram_id=$1 AND status='redeemed'",
+            telegram_user_id,
+        )
+        return row is not None
+
+
+async def redeem_license(telegram_user_id: int, code: str) -> bool:
+    """
+    Code einmalig einlösen und an Telegram-User-ID binden.
+    Rückgabe True wenn erfolgreich, sonst False.
+    """
+    pool = await get_db_pool()
+    code_norm = normalize_code(code)
+    if not code_norm:
+        return False
+
+    code_h = hash_code(code_norm)
+
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            lic = await conn.fetchrow(
+                "SELECT id, status FROM licenses WHERE code_hash=$1 FOR UPDATE",
+                code_h,
+            )
+            if not lic:
+                return False
+            if lic["status"] != "unused":
+                return False
+
+            await conn.execute(
+                """
+                UPDATE licenses
+                SET status='redeemed',
+                    redeemed_at=now(),
+                    redeemed_telegram_id=$1
+                WHERE id=$2
+                """,
+                telegram_user_id,
+                lic["id"],
+            )
+            return True
+
 
 # ============================================================
 # Paths (damit Files auf Railway zuverlässig gefunden werden)
 # ============================================================
 BASE_DIR = Path(__file__).resolve().parent
+
 
 def file_path(filename: str) -> Path:
     return BASE_DIR / filename
@@ -45,11 +123,13 @@ def file_path(filename: str) -> Path:
 # ============================================================
 # Zustände
 # ============================================================
+STATE_LICENSE = 0  # <-- NEU: wartet auf Zugangscode
 STATE_CODE = 1
 STATE_TOM = 2
 STATE_PASCHA = 3
-STATE_ELEKTRO = 4  # <-- NEU: eigener State für Elektrotechnik
+STATE_ELEKTRO = 4  # <-- eigener State für Elektrotechnik
 
+# State-Tracking pro Chat (Rätsel laufen im Chat-Kontext)
 user_state: dict[int, int] = {}
 user_help_count: dict[int, int] = {}
 
@@ -59,6 +139,19 @@ user_help_count: dict[int, int] = {}
 # ============================================================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
+    user_id = update.effective_user.id
+
+    # --- Lizenz-Gate ---
+    if not await is_licensed(user_id):
+        user_state[chat_id] = STATE_LICENSE
+        user_help_count[chat_id] = 0
+        await update.message.reply_text(
+            "🔐 Zugriff geschützt.\n"
+            "Bitte sende mir deinen Zugangscode (z.B. ABCD-EFGH-IJKL-MNOP-QRST)."
+        )
+        return
+
+    # --- Rätsel Start ---
     user_state[chat_id] = STATE_CODE
     user_help_count[chat_id] = 0
 
@@ -80,6 +173,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("⚠️ Datei schnuffel.png fehlt auf dem Server.")
 
+
 async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
 
@@ -87,9 +181,17 @@ async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Bitte starte zuerst mit /start.")
         return
 
+    state = user_state[chat_id]
+
+    # Optional: für Lizenz-State eigener Hinweis
+    if state == STATE_LICENSE:
+        await update.message.reply_text(
+            "Tipp: Der Zugangscode steht in deiner Kaufbestätigung und sieht aus wie ABCD-EFGH-IJKL-...."
+        )
+        return
+
     count = user_help_count.get(chat_id, 0) + 1
     user_help_count[chat_id] = count
-    state = user_state[chat_id]
 
     if state == STATE_CODE:
         if count == 1:
@@ -133,6 +235,7 @@ async def send_tom(update: Update):
     else:
         await update.message.reply_text("⚠️ Datei fehlt auf dem Server.")
 
+
 async def send_pascha(update: Update):
     await update.message.reply_text(
         "Welche Maßnahme trägt am effektivsten zur Reduktion der Strahlenbelastung des Patienten bei?\n"
@@ -141,6 +244,7 @@ async def send_pascha(update: Update):
         "C) Verwendung von Bleigummischürzen\n"
         "D) Verkleinerung des Strahlenfeldes (Einblenden)"
     )
+
 
 async def send_elektro(update: Update):
     img = file_path("elektro.png")
@@ -166,8 +270,8 @@ async def send_elektro(update: Update):
             "A) viermal so groß\nB) doppelt so groß\nC) halbiert\nD) unverändert"
         )
 
+
 async def send_final_video(update: Update):
-    # Dateiname kannst du ändern (z.B. "final.mp4")
     v = file_path("final.mp4")
     caption_text = "Ihr habt alle Rätsel gelöst und somit euer Geschenk verdient"
 
@@ -187,6 +291,7 @@ async def send_final_video(update: Update):
 # ============================================================
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
+    user_id = update.effective_user.id
     text = (update.message.text or "").strip()
 
     if chat_id not in user_state:
@@ -195,6 +300,32 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     state = user_state[chat_id]
 
+    # --- Lizenz-Gate auch innerhalb der Session absichern ---
+    if state != STATE_LICENSE and not await is_licensed(user_id):
+        user_state[chat_id] = STATE_LICENSE
+        user_help_count[chat_id] = 0
+        await update.message.reply_text("🔐 Zugriff fehlt. Bitte sende zuerst deinen Zugangscode.")
+        return
+
+    # --- Lizenzcode einlösen ---
+    if state == STATE_LICENSE:
+        ok = await redeem_license(user_id, text)
+        if ok:
+            await update.message.reply_text(
+                "✅ Code akzeptiert! Zugriff wurde aktiviert.\n"
+                "Starte jetzt bitte erneut mit /start."
+            )
+            # Reset der Session, damit /start sauber neu beginnt
+            user_state.pop(chat_id, None)
+            user_help_count.pop(chat_id, None)
+        else:
+            await update.message.reply_text(
+                "❌ Code ungültig oder bereits verwendet.\n"
+                "Bitte prüfe ihn und sende ihn erneut."
+            )
+        return
+
+    # --- Dein bestehender Rätsel-Flow ---
     if state == STATE_CODE:
         if text == "1984":
             user_state[chat_id] = STATE_TOM
@@ -218,7 +349,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("❌ Falscher Code!")
 
     elif state == STATE_PASCHA:
-        # richtige Lösung: D
         if text.strip().lower() == "d":
             user_state[chat_id] = STATE_ELEKTRO
             user_help_count[chat_id] = 0
@@ -228,7 +358,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("❌ Falsche Antwort. Bitte A, B, C oder D.")
 
     elif state == STATE_ELEKTRO:
-        # richtige Lösung: B
         answer = text.strip().lower()
         if answer in {"b", "b.", "b)", "b]"}:
             await send_final_video(update)
@@ -238,6 +367,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             user_help_count.pop(chat_id, None)
         else:
             await update.message.reply_text("❌ Leider falsch. Versucht es nochmal: A, B, C oder D.")
+
 
 # ============================================================
 # Main: Webhook für Railway
@@ -262,6 +392,7 @@ def main():
         webhook_url=webhook_url,
         drop_pending_updates=True,
     )
+
 
 if __name__ == "__main__":
     main()
