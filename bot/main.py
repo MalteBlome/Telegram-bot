@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Optional
 
 import asyncpg
-from telegram import Update
+from telegram import Update, InputMediaPhoto
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -155,23 +155,49 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_state[chat_id] = STATE_CODE
     user_help_count[chat_id] = 0
 
-    img = file_path("schnuffel.png")
+    # 1) Erst ein Bild mit Caption senden
+    main_img = file_path("Andrea.png")
 
-    if img.exists():
-        with img.open("rb") as photo:
+    caption_text = (
+        "Hallo Yadegar! *schluchzt*\n\n"
+        "Der lange Tünn hat mir schon erzählt, dass du vorbeikommen würdest..."
+        "ich kann es noch immer nicht glaube dass Rosi nicht mehr bei uns ist....\n\n"
+        "Alles was mir bleibt ist ihr letzter Brief und ich kann und will nicht glauben, dass sie sich selber umgebracht hat...nicht meien Rosi\n"
+        "Ihr wollt Infos über Karate Jacky und wo er untergetaucht sein könnte, die gebe ich euch wenn ihr mir helft zu beweisen dass Rosi keinen Selbstmord begangen hat"
+        "Hier ist ihr letzter Brief an mich...ich liebe dieses Foto....sie fehlt mir soooo"
+    )
+
+    if main_img.exists():
+        with main_img.open("rb") as photo:
             await update.message.reply_photo(
                 photo=photo,
-                caption=(
-                    "Hallo Team Schnuffel!\n\n"
-                    "Heute gibt es vom Weihnachtsmann 🎅 die Geschenke 🎁 "
-                    "nicht einfach soo… ihr müsst sie euch wohl verdienen.\n\n"
-                    "Daher beginnt hier euer Rätsel:\n"
-                    "Das in der Ruschwedelerstraße weit bekannte Gedicht von "
-                    "Reiner Kunze – *Rudern Zwei* – wird auf welches Jahr datiert?"
-                ),
+                caption=caption_text,
+                parse_mode="Markdown",
             )
     else:
-        await update.message.reply_text("⚠️ Datei schnuffel.png fehlt auf dem Server.")
+        await update.message.reply_text("⚠️ Datei Andrea.png fehlt auf dem Server.")
+        return
+
+    # 2) Danach die weiteren Bilder als MediaGroup (Album) hinterher
+    extra_imgs = [
+        file_path("Brief1.png"),
+        file_path("Brief2.png"),
+        file_path("Brief3.png"),
+        file_path("Rosie_und_Andrea.png"),
+        file_path("Zahlen.png"),
+    ]
+
+    existing = [p for p in extra_imgs if p.exists()]
+    if existing:
+        files = [p.open("rb") for p in existing]
+        try:
+            media = [InputMediaPhoto(media=f) for f in files]
+            await update.message.reply_media_group(media=media)
+        finally:
+            for f in files:
+                f.close()
+    else:
+        await update.message.reply_text("⚠️ Zusatzbilder fehlen auf dem Server.")
 
 
 async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
