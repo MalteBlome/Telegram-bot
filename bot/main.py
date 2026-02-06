@@ -164,7 +164,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "ich kann es noch immer nicht glaube dass Rosi nicht mehr bei uns ist....\n\n"
         "Alles was mir bleibt ist ihr letzter Brief und ich kann und will nicht glauben, dass sie sich selber umgebracht hat...nicht meien Rosi\n"
         "Ihr wollt Infos über Karate Jacky und wo er untergetaucht sein könnte, die gebe ich euch wenn ihr mir helft zu beweisen dass Rosi keinen Selbstmord begangen hat"
-        "Hier ist ihr letzter Brief an mich...ich liebe dieses Foto....sie fehlt mir soooo"
+        "Hier ist ihr letzter Brief an mich...ich liebe dieses Foto....sie fehlt mir soooo....Gebt mir einen Namen für die Polizei und ich sage euch alles was ich weiß"
     )
 
     if main_img.exists():
@@ -353,7 +353,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # --- Dein bestehender Rätsel-Flow ---
     if state == STATE_CODE:
-        if text == "1984":
+        if text == "Denisa":
             user_state[chat_id] = STATE_TOM
             user_help_count[chat_id] = 0
             await update.message.reply_text(
