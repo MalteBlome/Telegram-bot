@@ -357,7 +357,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             user_state[chat_id] = STATE_TOM
             user_help_count[chat_id] = 0
             await update.message.reply_text(
-                "Sehr gut - damit habt ihr das erste Rätsel gelöst und seid eurem Geschenk schon etwas näher✅"
+                "Sehr gut - somit hast du dieses Rätsel gelöst mein kleines Mäuschen <3 Hier ein famoser Song für dich"
             )
             await send_tom(update)
         else:
