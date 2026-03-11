@@ -13,12 +13,12 @@ TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 # Bilder + Captions
 STEPS = [
     {"file": "Vulkan1.jpg", "caption": "Es grüßt ganz herzlich das Team Schnarchtier"},
-    {"file": "bild2.jpg", "caption": "Caption für Bild 2"},
-    {"file": "bild3.jpg", "caption": "Caption für Bild 3"},
-    {"file": "bild4.jpg", "caption": "Caption für Bild 4"},
-    {"file": "bild5.jpg", "caption": "Caption für Bild 5"},
-    {"file": "bild6.jpg", "caption": "Caption für Bild 6"},
-    {"file": "bild7.jpg", "caption": "Caption für Bild 7"},
+    {"file": "aperol.jpg", "caption": "Caption für Bild 2"},
+    {"file": "eis.jpg", "caption": "Caption für Bild 3"},
+    {"file": "drink.jpg", "caption": "Caption für Bild 4"},
+    {"file": "sonne.jpg", "caption": "Caption für Bild 5"},
+    {"file": "schlafen.jpg", "caption": "Caption für Bild 6"},
+    {"file": "aufwachen.jpg", "caption": "Caption für Bild 7"},
 ]
 
 
